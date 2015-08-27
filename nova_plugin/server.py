@@ -387,6 +387,29 @@ def stop(nova_client, **kwargs):
 @operation
 @with_nova_client
 def delete(nova_client, **kwargs):
+    """
+    ~~~ BEGIN SUNGARD COMMENT ~~~
+
+    NOTE: This code has been modified for SunGardAS and is NOT intended to
+    serve a larger audience.
+
+    The design for the SunGardAS requirements is available here:
+
+    https://docs.google.com/document/d/1vl2cDyQAAJg8qWvmYmLZnesb5wJKQDUdWJfUQ-vh0gk/edit #NOQA
+
+    Because of certain technical limitations in the 1.2.1 product, the
+    decision was made to fork the 1.2.1-build branch and modify the
+    OpenStack plugin in place.
+
+    In addition to default behavior, SunGard requires this method to make a
+    REST API call in SunGardAS' ESB system (after the VmState is set to SHUTOFF
+    by VIO.)
+
+
+    ~~~ END SUNGARD COMMENT ~~~
+
+    """
+
     if not is_external_resource(ctx):
         ctx.logger.info('deleting server')
         server = get_server_by_context(nova_client)
