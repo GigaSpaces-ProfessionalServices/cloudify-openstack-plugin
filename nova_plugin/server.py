@@ -77,6 +77,26 @@ RUNTIME_PROPERTIES_KEYS = COMMON_RUNTIME_PROPERTIES_KEYS + \
 @with_neutron_client
 def create(nova_client, neutron_client, args, **kwargs):
     """
+    ~~~ BEGIN SUNGARD COMMENT ~~~
+
+    NOTE: This code has been modified for SunGardAS and is NOT intended as
+    serving a larger audience.
+
+    The design for these differences is available here:
+
+    https://docs.google.com/document/d/1vl2cDyQAAJg8qWvmYmLZnesb5wJKQDUdWJfUQ-vh0gk/edit #NOQA
+
+    Because of certain technical limitations in the 1.2.1 product, the
+    decision was made to fork the 1.2.1-build branch and modify the
+    OpenStack plugin in place.
+
+    In addition to default behavior, SunGard requires this method to
+    specify the desired hostname in the create_command. We are
+    pulling the hostname out of the types.yaml file and adding it to
+    the server dict that is created for the create command.
+
+    ~~~ END SUNGARD COMMENT ~~~
+
     Creates a server. Exposes the parameters mentioned in
     http://docs.openstack.org/developer/python-novaclient/api/novaclient.v1_1
     .servers.html#novaclient.v1_1.servers.ServerManager.create
@@ -269,6 +289,28 @@ def get_port_network_ids_(neutron_client, port_ids):
 @operation
 @with_nova_client
 def start(nova_client, start_retry_interval, private_key_path, **kwargs):
+    """
+    ~~~ BEGIN SUNGARD COMMENT ~~~
+
+    NOTE: This code has been modified for SunGardAS and is NOT intended to
+    serve a larger audience.
+
+    The design for the SunGardAS requirements is available here:
+
+    https://docs.google.com/document/d/1vl2cDyQAAJg8qWvmYmLZnesb5wJKQDUdWJfUQ-vh0gk/edit #NOQA
+
+    Because of certain technical limitations in the 1.2.1 product, the
+    decision was made to fork the 1.2.1-build branch and modify the
+    OpenStack plugin in place.
+
+    In addition to default behavior, SunGard requires this method to make a
+    REST API call in SunGardAS' ESB system (after the VmState is set to Active
+    by VIO.
+
+
+    ~~~ END SUNGARD COMMENT ~~~
+
+    """
     server = get_server_by_context(nova_client)
 
     if is_external_resource(ctx):
