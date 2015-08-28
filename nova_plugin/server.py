@@ -257,6 +257,15 @@ def create(nova_client, neutron_client, args, **kwargs):
         server['meta']['cloudify_management_network_name'] = \
             management_network_name
 
+    hostname = ctx.node.properties['hostname']
+    ctx.logger.info('Sending hostname to server create => {}.'.format(hostname))
+    if False:
+        if 'name' not in server and hostname:
+            server['name'] = hostname
+            ctx.logger.info('Really setting hostname to {}'.format(hostname))
+    else:
+        ctx.logger.info('Not really setting hostname.')
+
     ctx.logger.info("Creating VM with parameters: {0}".format(str(server)))
     ctx.logger.debug(
         "Asking Nova to create server. All possible parameters are: {0})"
@@ -338,6 +347,13 @@ def start(nova_client, start_retry_interval, private_key_path, **kwargs):
             ctx.logger.info('Server has been set with a password')
 
         _set_network_and_ip_runtime_properties(server)
+        node_ip = ctx.instance.runtime_properties[IP_PROPERTY]
+        if 'ip_address' in ctx.instance.properties and node_ip:
+            ctx.instance.properties['ip_address'] = node_ip
+        hostname = ctx.instance.properties['hostname']
+
+        ctx.logger.info('Server {} is active with Mgt Network IP {}.'.format(
+            hostname, node_ip))
         return
 
     server_task_state = getattr(server, OS_EXT_STS_TASK_STATE)
@@ -410,6 +426,7 @@ def delete(nova_client, **kwargs):
 
     """
 
+    call_sungard_esb('DELETE', **kwargs)
     if not is_external_resource(ctx):
         ctx.logger.info('deleting server')
         server = get_server_by_context(nova_client)
@@ -418,8 +435,34 @@ def delete(nova_client, **kwargs):
     else:
         ctx.logger.info('not deleting server since an external server is '
                         'being used')
-
     delete_runtime_properties(ctx, RUNTIME_PROPERTIES_KEYS)
+
+
+def call_sungard_esb(http_method, **_):
+    """
+    :param http_method: POST or DELETE
+    :param _: kwargs
+    :return: if the server returns a 200 code
+    :raise NonRecoverableError if the server returns a non-200
+    """
+
+    payload = dict()
+    payload['host'] = ctx.instance.properties['hostname']
+    payload['ip_address'] = ctx.instance.runtime_properties[IP_PROPERTY]
+    serverType = None
+    # TODO debug for correct syntax
+    if ctx.node['type'] in ['sgas.vms.Windows']:
+        serverType = 'windows'
+    else:
+        serverType = 'linux'
+
+    if http_method == 'POST':
+        payload['host_type'] = serverType
+
+    # TODO actually make call
+
+    ctx.logger.info('Calling {} on SunGardESB with payload = {}'.format(
+        http_method, payload))
 
 
 def _wait_for_server_to_be_deleted(nova_client,
