@@ -237,19 +237,14 @@ def create(nova_client, neutron_client, args, nic_ordering=[], **kwargs):
 
         for nic_item in nic_ordering:
             nic_item_type = nic_item['type']
-            nic_item_name = nic_item['name']
-            nic_item_name = rename(nic_item_name)
+            nic_item_name = rename(nic_item['name'])
 
-            if nic_item_type == 'network':
-                nic_item_id = neutron_client.cosmo_get_named(
-                    'network', nic_item_name)['id']
-            elif nic_item_type == 'port':
-                port_id = neutron_client.cosmo_get_named(
-                    'port', nic_item_name)['id']
-                nic_item_id = get_port_network_ids_(neutron_client, [port_id])[0]
-            else:
-                raise NonRecoverableError('Unknown nic item type: {}'.format(
-                    nic_item_type))
+            nic_item_id = neutron_client.cosmo_get_named(
+                nic_item_type, nic_item_name)['id']
+
+            if nic_item_type == 'port':
+                nic_item_id = get_port_network_ids_(neutron_client, [nic_item_id])[0]
+
             ordered_nics.append(nic_item_id)
             current_nics.remove(nic_item_id)
 
