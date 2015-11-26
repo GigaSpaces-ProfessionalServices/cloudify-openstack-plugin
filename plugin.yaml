@@ -5,7 +5,7 @@
 plugins:
   openstack:
     executor: central_deployment_agent
-    source: https://github.com/isaac-s/cloudify-openstack-plugin/archive/apply-nic-ordering.zip
+    source: https://github.com/GigaSpaces-ProfessionalServices/cloudify-openstack-plugin/archive/apply-nic-ordering.zip
 
 node_types:
   cloudify.openstack.nodes.Server:
