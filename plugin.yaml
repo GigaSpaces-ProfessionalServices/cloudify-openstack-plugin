@@ -5,9 +5,9 @@
 plugins:
   openstack:
     executor: central_deployment_agent
-    source: https://github.com/cloudify-cosmo/cloudify-openstack-plugin/archive/1.3.zip
+    source: https://github.com/GigaSpaces-ProfessionalServices/cloudify-openstack-plugin/archive/1.3-apply-nic-ordering.zip
     package_name: cloudify-openstack-plugin
-    package_version: '1.3'
+    package_version: '1.3-apply-nic-ordering'
 
 node_types:
   cloudify.openstack.nodes.Server:
@@ -37,6 +37,8 @@ node_types:
           inputs:
             args:
               default: {}
+            nic_ordering:
+              default: []
             openstack_config:
               default: {}
         start:
