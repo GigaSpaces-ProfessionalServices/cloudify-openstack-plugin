@@ -6,7 +6,7 @@ plugins:
   openstack:
     executor: central_deployment_agent
     package_name: cloudify-openstack-plugin
-    package_version: 1.3sgas
+    package_version: 1.3rc1
 
 node_types:
   cloudify.openstack.nodes.Server:
