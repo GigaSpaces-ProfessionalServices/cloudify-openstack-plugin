@@ -36,8 +36,6 @@ node_types:
           inputs:
             args:
               default: {}
-            nic_ordering:
-              default: []
             openstack_config:
               default: {}
         start:

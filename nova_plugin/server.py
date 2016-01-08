@@ -76,7 +76,7 @@ RUNTIME_PROPERTIES_KEYS = COMMON_RUNTIME_PROPERTIES_KEYS + \
 @operation
 @with_nova_client
 @with_neutron_client
-def create(nova_client, neutron_client, args, nic_ordering, **kwargs):
+def create(nova_client, neutron_client, args, **kwargs):
     """
     Creates a server. Exposes the parameters mentioned in
     http://docs.openstack.org/developer/python-novaclient/api/novaclient.v1_1
@@ -135,8 +135,9 @@ def create(nova_client, neutron_client, args, nic_ordering, **kwargs):
             management_network_id = int_network['id']
             management_network_name = int_network['name']  # Already transform.
     if management_network_id is not None:
-        server['nics'] = \
-            server.get('nics', []) + [{'net-id': management_network_id}]
+        server['nics'] = _uniquify(server.get('nics'),
+                                   [{'net-id': management_network_id}])
+        ctx.logger.debug('nics after including management_network_id: {}'.format(server['nics']))
 
     _handle_image_or_flavor(server, nova_client, 'image')
     _handle_image_or_flavor(server, nova_client, 'flavor')
@@ -182,65 +183,11 @@ def create(nova_client, neutron_client, args, nic_ordering, **kwargs):
             "'management_network_name' in properties or id "
             "from provider context, which was not supplied")
 
-    # Multi-NIC by networks - start
-    nics = [{'net-id': net_id} for net_id in network_ids]
-    if nics:
-        if management_network_id in network_ids:
-            # de-duplicating the management network id in case it appears in
-            # network_ids. There has to be a management network if a
-            # network is connected to the server.
-            # note: if the management network appears more than once in
-            # network_ids it won't get de-duplicated and the server creation
-            # will fail.
-            nics.remove({'net-id': management_network_id})
-
-        server['nics'] = server.get('nics', []) + nics
-    # Multi-NIC by networks - end
-
-    # Multi-NIC by ports - start
-    nics = [{'port-id': port_id} for port_id in port_ids]
-    if nics:
-        port_network_ids = get_port_network_ids_(neutron_client, port_ids)
-        if management_network_id in port_network_ids:
-            # de-duplicating the management network id in case it appears in
-            # port_ids. There has to be a management network if a
-            # network is connected to the server.
-            # note: if the management network appears more than once in
-            # network_ids it won't get de-duplicated and the server creation
-            # will fail.
-            server['nics'].remove({'net-id': management_network_id})
-
-        server['nics'] = server.get('nics', []) + nics
-    # Multi-NIC by ports - end
-
-    # Re-order the nics:
-    # 1. Items specified in 'nic-ordering' will appear first, according to
-    #    their order.
-    # 2. All other items will come next, in whatever order they're already
-    #    in.
-
-    if hasattr(server, 'nics'):
-        ordered_nics = []
-        current_nics = server['nics']
-
-        for nic_item in nic_ordering:
-            nic_item_type = nic_item['type']
-            nic_item_name = rename(nic_item['name'])
-
-            nic_item_id = neutron_client.cosmo_get_named(
-                nic_item_type, nic_item_name)['id']
-
-            if nic_item_type == 'port':
-                nic_item_id = get_port_network_ids_(neutron_client, [nic_item_id])[0]
-
-            ordered_nics.append(nic_item_id)
-            current_nics.remove(nic_item_id)
-
-        ordered_nics.extend(current_nics)
-
-        ctx.logger.debug('NICs: before ordering={}, after ordering={}'.format(
-            server['nics'], ordered_nics))
-        server['nics'] = ordered_nics
+    nics_from_related_networks = [{'net-id': net_id} for net_id in network_ids]
+    nics_from_related_ports = [{'port-id': port_id} for port_id in port_ids]
+    server['nics'] = _uniquify(server.get('nics'), nics_from_related_networks,
+                               nics_from_related_ports)
+    ctx.logger.debug('nics after including networks from related nodes: {}'.format(server['nics']))
 
     ctx.logger.debug(
         "server.create() server after transformations: {0}".format(server))
@@ -275,6 +222,13 @@ def create(nova_client, neutron_client, args, nic_ordering, **kwargs):
         SERVER_OPENSTACK_TYPE
     ctx.instance.runtime_properties[OPENSTACK_NAME_PROPERTY] = server['name']
 
+
+def _uniquify(*lists):
+    target = []
+    for list in lists:
+        if list is not None:
+            [target.append(x) for x in list if not x in target]
+    return target
 
 def get_port_network_ids_(neutron_client, port_ids):
 
