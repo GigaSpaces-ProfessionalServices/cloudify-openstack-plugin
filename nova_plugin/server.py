@@ -135,8 +135,9 @@ def create(nova_client, neutron_client, args, **kwargs):
             management_network_id = int_network['id']
             management_network_name = int_network['name']  # Already transform.
     if management_network_id is not None:
-        server['nics'] = \
-            server.get('nics', []) + [{'net-id': management_network_id}]
+        server['nics'] = _uniquify(server.get('nics', []),
+                                   [{'net-id': management_network_id}])
+        ctx.logger.debug('nics after including management_network_id: {}'.format(server['nics']))
 
     _handle_image_or_flavor(server, nova_client, 'image')
     _handle_image_or_flavor(server, nova_client, 'flavor')
@@ -182,36 +183,11 @@ def create(nova_client, neutron_client, args, **kwargs):
             "'management_network_name' in properties or id "
             "from provider context, which was not supplied")
 
-    # Multi-NIC by networks - start
-    nics = [{'net-id': net_id} for net_id in network_ids]
-    if nics:
-        if management_network_id in network_ids:
-            # de-duplicating the management network id in case it appears in
-            # network_ids. There has to be a management network if a
-            # network is connected to the server.
-            # note: if the management network appears more than once in
-            # network_ids it won't get de-duplicated and the server creation
-            # will fail.
-            nics.remove({'net-id': management_network_id})
-
-        server['nics'] = server.get('nics', []) + nics
-    # Multi-NIC by networks - end
-
-    # Multi-NIC by ports - start
-    nics = [{'port-id': port_id} for port_id in port_ids]
-    if nics:
-        port_network_ids = get_port_network_ids_(neutron_client, port_ids)
-        if management_network_id in port_network_ids:
-            # de-duplicating the management network id in case it appears in
-            # port_ids. There has to be a management network if a
-            # network is connected to the server.
-            # note: if the management network appears more than once in
-            # network_ids it won't get de-duplicated and the server creation
-            # will fail.
-            server['nics'].remove({'net-id': management_network_id})
-
-        server['nics'] = server.get('nics', []) + nics
-    # Multi-NIC by ports - end
+    nics_from_related_networks = [{'net-id': net_id} for net_id in network_ids]
+    nics_from_related_ports = [{'port-id': port_id} for port_id in port_ids]
+    server['nics'] = _uniquify(server.get('nics'), nics_from_related_networks,
+                               nics_from_related_ports)
+    ctx.logger.debug('nics after including networks from related nodes: {}'.format(server['nics']))
 
     ctx.logger.debug(
         "server.create() server after transformations: {0}".format(server))
@@ -246,6 +222,13 @@ def create(nova_client, neutron_client, args, **kwargs):
         SERVER_OPENSTACK_TYPE
     ctx.instance.runtime_properties[OPENSTACK_NAME_PROPERTY] = server['name']
 
+
+def _uniquify(*lists):
+    target = []
+    for list in lists:
+        if list is not None:
+            [target.append(x) for x in list if not x in target]
+    return target
 
 def get_port_network_ids_(neutron_client, port_ids):
 
