@@ -69,7 +69,9 @@ def create_floatingip(neutron_client, args, **kwargs):
     }
 
     if ctx.type != RELATIONSHIP_INSTANCE:
-        floatingip.update(ctx.node.properties['floatingip'], **args)
+        floatingip.update(ctx.node.properties['floatingip'])
+
+    floatingip.update(**args)
 
     # Sugar: floating_network_name -> (resolve) -> floating_network_id
     if 'floating_network_name' in floatingip:
