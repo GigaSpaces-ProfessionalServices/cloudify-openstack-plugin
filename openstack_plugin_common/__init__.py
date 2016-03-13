@@ -282,18 +282,27 @@ def validate_resource(ctx, sugared_client, openstack_type,
 
 def delete_resource_and_runtime_properties(ctx, sugared_client,
                                            runtime_properties_keys):
-    node_openstack_type = ctx.instance.runtime_properties[
+    delete_resource_and_runtime_properties(ctx, ctx.instance,
+                                           sugared_client,
+                                           runtime_properties_keys)
+
+
+def delete_resource_and_runtime_properties(ctx, instance,
+                                           sugared_client,
+                                           runtime_properties_keys):
+    node_openstack_type = instance.runtime_properties[
         OPENSTACK_TYPE_PROPERTY]
-    if not is_external_resource(ctx):
+    if ctx.type == context.RELATIONSHIP_INSTANCE or \
+            not is_external_resource(ctx):
         ctx.logger.info('deleting {0}'.format(node_openstack_type))
         sugared_client.cosmo_delete_resource(
             node_openstack_type,
-            ctx.instance.runtime_properties[OPENSTACK_ID_PROPERTY])
+            instance.runtime_properties[OPENSTACK_ID_PROPERTY])
     else:
         ctx.logger.info('not deleting {0} since an external {0} is '
                         'being used'.format(node_openstack_type))
 
-    delete_runtime_properties(ctx, runtime_properties_keys)
+    delete_runtime_properties(instance, runtime_properties_keys)
 
 
 def is_external_resource(ctx):
@@ -311,9 +320,13 @@ def is_external_resource_by_properties(properties):
 
 
 def delete_runtime_properties(ctx, runtime_properties_keys):
+    delete_runtime_properties(ctx.instance, runtime_properties_keys)
+
+
+def delete_runtime_properties(instance, runtime_properties_keys):
     for runtime_prop_key in runtime_properties_keys:
-        if runtime_prop_key in ctx.instance.runtime_properties:
-            del ctx.instance.runtime_properties[runtime_prop_key]
+        if runtime_prop_key in instance.runtime_properties:
+            del instance.runtime_properties[runtime_prop_key]
 
 
 def validate_ip_or_range_syntax(ctx, address, is_range=True):

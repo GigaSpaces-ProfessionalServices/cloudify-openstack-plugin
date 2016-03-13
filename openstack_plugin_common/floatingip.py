@@ -47,15 +47,20 @@ def use_external_floatingip(client, ip_field_name, ext_fip_ip_extractor):
 
 
 def set_floatingip_runtime_properties(fip_id, ip_address):
-    ctx.instance.runtime_properties[OPENSTACK_ID_PROPERTY] = fip_id
-    ctx.instance.runtime_properties[OPENSTACK_TYPE_PROPERTY] = \
+    if ctx.type == RELATIONSHIP_INSTANCE:
+        instance = ctx.target.instance
+    else:
+        instance = ctx.instance
+    instance.runtime_properties[OPENSTACK_ID_PROPERTY] = fip_id
+    instance.runtime_properties[OPENSTACK_TYPE_PROPERTY] = \
         FLOATINGIP_OPENSTACK_TYPE
-    ctx.instance.runtime_properties[IP_ADDRESS_PROPERTY] = ip_address
+    instance.runtime_properties[IP_ADDRESS_PROPERTY] = ip_address
 
 
 def create_floatingip(neutron_client, args, **kwargs):
 
-    if use_external_floatingip(neutron_client, 'floating_ip_address',
+    if ctx.type != RELATIONSHIP_INSTANCE and \
+        use_external_floatingip(neutron_client, 'floating_ip_address',
                                lambda ext_fip: ext_fip['floating_ip_address']):
         return
 
