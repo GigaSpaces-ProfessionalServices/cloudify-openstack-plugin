@@ -15,6 +15,8 @@
 
 from cloudify import ctx
 from cloudify.exceptions import NonRecoverableError
+from cloudify.context import RELATIONSHIP_INSTANCE
+
 from openstack_plugin_common import (
     delete_resource_and_runtime_properties,
     use_external_resource,
@@ -60,7 +62,9 @@ def create_floatingip(neutron_client, args, **kwargs):
     floatingip = {
         # No defaults
     }
-    floatingip.update(ctx.node.properties['floatingip'], **args)
+
+    if ctx.type != RELATIONSHIP_INSTANCE:
+        floatingip.update(ctx.node.properties['floatingip'], **args)
 
     # Sugar: floating_network_name -> (resolve) -> floating_network_id
     if 'floating_network_name' in floatingip:
