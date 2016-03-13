@@ -48,7 +48,10 @@ from openstack_plugin_common import (
     with_neutron_client)
 from nova_plugin.keypair import KEYPAIR_OPENSTACK_TYPE
 from nova_plugin import userdata
-from openstack_plugin_common.floatingip import IP_ADDRESS_PROPERTY
+from openstack_plugin_common.floatingip import (
+    IP_ADDRESS_PROPERTY,
+    create_floatingip,
+    delete_floatingip)
 from neutron_plugin.network import NETWORK_OPENSTACK_TYPE
 from neutron_plugin.port import PORT_OPENSTACK_TYPE
 
@@ -372,39 +375,30 @@ def _set_network_and_ip_runtime_properties(server):
 
 @operation
 @with_nova_client
+@with_neutron_client
+def attach_floatingip(nova_client, neutron_client, fixed_ip, args, **kwargs):
+    create_floatingip(neutron_client, args, **kwargs)
+    _connect_floatingip(nova_client, fixed_ip, **kwargs)
+
+
+@operation
+@with_nova_client
+@with_neutron_client
+def detach_floatingip(nova_client, neutron_client, **kwargs):
+    _disconnect_floatingip(nova_client, **kwargs)
+    delete_floatingip(neutron_client, **kwargs)
+
+
+@operation
+@with_nova_client
 def connect_floatingip(nova_client, fixed_ip, **kwargs):
-    server_id = ctx.source.instance.runtime_properties[OPENSTACK_ID_PROPERTY]
-    floating_ip_id = ctx.target.instance.runtime_properties[
-        OPENSTACK_ID_PROPERTY]
-
-    if is_external_relationship(ctx):
-        ctx.logger.info('Validating external floatingip and server '
-                        'are associated')
-        if nova_client.floating_ips.get(floating_ip_id).instance_id ==\
-                server_id:
-            return
-        raise NonRecoverableError(
-            'Expected external resources server {0} and floating-ip {1} to be '
-            'connected'.format(server_id, floating_ip_id))
-
-    floating_ip_address = ctx.target.instance.runtime_properties[
-        IP_ADDRESS_PROPERTY]
-    server = nova_client.servers.get(server_id)
-    server.add_floating_ip(floating_ip_address, fixed_ip or None)
+    _connect_floatingip(nova_client, fixed_ip, **kwargs)
 
 
 @operation
 @with_nova_client
 def disconnect_floatingip(nova_client, **kwargs):
-    if is_external_relationship(ctx):
-        ctx.logger.info('Not disassociating floatingip and server since '
-                        'external floatingip and server are being used')
-        return
-
-    server_id = ctx.source.instance.runtime_properties[OPENSTACK_ID_PROPERTY]
-    server = nova_client.servers.get(server_id)
-    server.remove_floating_ip(ctx.target.instance.runtime_properties[
-        IP_ADDRESS_PROPERTY])
+    _disconnect_floatingip(nova_client, **kwargs)
 
 
 @operation
@@ -766,3 +760,34 @@ def _handle_image_or_flavor(server, nova_client, prop_name):
                 getattr(nova_client, prop_name_plural).find(
                     name=server['{0}_name'.format(prop_name)]).id
             del server['{0}_name'.format(prop_name)]
+
+def _connect_floatingip(nova_client, fixed_ip, **kwargs):
+    server_id = ctx.source.instance.runtime_properties[OPENSTACK_ID_PROPERTY]
+    floating_ip_id = ctx.target.instance.runtime_properties[
+        OPENSTACK_ID_PROPERTY]
+
+    if is_external_relationship(ctx):
+        ctx.logger.info('Validating external floatingip and server '
+                        'are associated')
+        if nova_client.floating_ips.get(floating_ip_id).instance_id ==\
+                server_id:
+            return
+        raise NonRecoverableError(
+            'Expected external resources server {0} and floating-ip {1} to be '
+            'connected'.format(server_id, floating_ip_id))
+
+    floating_ip_address = ctx.target.instance.runtime_properties[
+        IP_ADDRESS_PROPERTY]
+    server = nova_client.servers.get(server_id)
+    server.add_floating_ip(floating_ip_address, fixed_ip or None)
+
+def _disconnect_floatingip(nova_client, **kwargs):
+    if is_external_relationship(ctx):
+        ctx.logger.info('Not disassociating floatingip and server since '
+                        'external floatingip and server are being used')
+        return
+
+    server_id = ctx.source.instance.runtime_properties[OPENSTACK_ID_PROPERTY]
+    server = nova_client.servers.get(server_id)
+    server.remove_floating_ip(ctx.target.instance.runtime_properties[
+        IP_ADDRESS_PROPERTY])

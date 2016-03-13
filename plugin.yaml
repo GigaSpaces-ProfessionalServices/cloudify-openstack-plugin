@@ -509,6 +509,29 @@ relationships:
             openstack_config:
               default: {}
 
+  cloudify.openstack.server_connected_to_floating_ip_ex:
+    derived_from: cloudify.relationships.connected_to
+    source_interfaces:
+      cloudify.interfaces.relationship_lifecycle:
+        establish:
+          implementation: openstack.nova_plugin.server.attach_floatingip
+          inputs:
+            fixed_ip:
+              description: >
+                The fixed IP to be associated with the floating IP.
+                If omitted, Openstack will choose which port to associate.
+              type: string
+              default: ''
+            openstack_config:
+              default: {}
+            args:
+              default: {}
+        unlink:
+          implementation: openstack.nova_plugin.server.detach_floatingip
+          inputs:
+            openstack_config:
+              default: {}
+
   cloudify.openstack.port_connected_to_floating_ip:
     derived_from: cloudify.relationships.connected_to
     source_interfaces:

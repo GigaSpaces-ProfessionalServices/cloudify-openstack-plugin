@@ -15,16 +15,13 @@
 
 from cloudify import ctx
 from cloudify.decorators import operation
-from cloudify.exceptions import NonRecoverableError
 from openstack_plugin_common import (
     with_neutron_client,
-    provider,
     is_external_relationship,
     OPENSTACK_ID_PROPERTY
 )
 from openstack_plugin_common.floatingip import (
-    use_external_floatingip,
-    set_floatingip_runtime_properties,
+    create_floatingip,
     delete_floatingip,
     floatingip_creation_validation
 )
@@ -32,35 +29,8 @@ from openstack_plugin_common.floatingip import (
 
 @operation
 @with_neutron_client
-def create(neutron_client, args, **kwargs):
-
-    if use_external_floatingip(neutron_client, 'floating_ip_address',
-                               lambda ext_fip: ext_fip['floating_ip_address']):
-        return
-
-    floatingip = {
-        # No defaults
-    }
-    floatingip.update(ctx.node.properties['floatingip'], **args)
-
-    # Sugar: floating_network_name -> (resolve) -> floating_network_id
-    if 'floating_network_name' in floatingip:
-        floatingip['floating_network_id'] = neutron_client.cosmo_get_named(
-            'network', floatingip['floating_network_name'])['id']
-        del floatingip['floating_network_name']
-    elif 'floating_network_id' not in floatingip:
-        provider_context = provider(ctx)
-        ext_network = provider_context.ext_network
-        if ext_network:
-            floatingip['floating_network_id'] = ext_network['id']
-    else:
-        raise NonRecoverableError('Missing floating network id or name')
-
-    fip = neutron_client.create_floatingip(
-        {'floatingip': floatingip})['floatingip']
-    set_floatingip_runtime_properties(fip['id'], fip['floating_ip_address'])
-
-    ctx.logger.info('Floating IP creation response: {0}'.format(fip))
+def create(neutron_client, **kwargs):
+    create_floatingip(neutron_client, None, kwargs)
 
 
 @operation
