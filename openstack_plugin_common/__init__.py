@@ -281,15 +281,11 @@ def validate_resource(ctx, sugared_client, openstack_type,
 
 
 def delete_resource_and_runtime_properties(ctx, sugared_client,
-                                           runtime_properties_keys):
-    delete_resource_and_runtime_properties(ctx, ctx.instance,
-                                           sugared_client,
-                                           runtime_properties_keys)
+                                           runtime_properties_keys,
+                                           instance=None):
+    if instance is None:
+        instance = ctx.instance
 
-
-def delete_resource_and_runtime_properties(ctx, instance,
-                                           sugared_client,
-                                           runtime_properties_keys):
     node_openstack_type = instance.runtime_properties[
         OPENSTACK_TYPE_PROPERTY]
     if ctx.type == context.RELATIONSHIP_INSTANCE or \
@@ -319,11 +315,10 @@ def is_external_resource_by_properties(properties):
         properties[USE_EXTERNAL_RESOURCE_PROPERTY]
 
 
-def delete_runtime_properties(ctx, runtime_properties_keys):
-    delete_runtime_properties(ctx.instance, runtime_properties_keys)
+def delete_runtime_properties(ctx, runtime_properties_keys, instance=None):
+    if instance is None:
+        instance = ctx.instance
 
-
-def delete_runtime_properties(instance, runtime_properties_keys):
     for runtime_prop_key in runtime_properties_keys:
         if runtime_prop_key in instance.runtime_properties:
             del instance.runtime_properties[runtime_prop_key]
