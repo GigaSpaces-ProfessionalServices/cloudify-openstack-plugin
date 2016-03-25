@@ -6,8 +6,8 @@ plugins:
   openstack:
     executor: central_deployment_agent
     source: https://codeload.github.com/GigaSpaces-ProfessionalServices/cloudify-openstack-plugin/zip/1.2.1-b0-1.0
-    package-name: cloudify-openstack-plugin
-    package-version: 1.2.1.post1
+    package_name: cloudify-openstack-plugin
+    package_version: 1.2.1.post1
 
 node_types:
   cloudify.openstack.nodes.Server:
