@@ -247,7 +247,13 @@ node_types:
         default: {}
     interfaces:
       cloudify.interfaces.lifecycle:
-        create: openstack.cinder_plugin.volume.create
+        create:
+          implementation: openstack.cinder_plugin.volume.create
+          inputs:
+            status_attempts:
+              default: 60
+            status_timeout:
+              default: 10
         delete: openstack.cinder_plugin.volume.delete
       cloudify.interfaces.validation:
         creation: openstack.cinder_plugin.volume.creation_validation
