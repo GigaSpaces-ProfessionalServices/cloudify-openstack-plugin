@@ -77,8 +77,10 @@ def create(neutron_client, args, **kwargs):
     transform_resource_name(ctx, subnet)
 
     # Sugaring: if gateway_ip is "auto", then it's removed from the request.
+    ctx.logger.debug("subnet before={}".format(subnet))
     if getattr(subnet, SUBNET_GATEWAY_IP, '') == SUBNET_GATEWAY_IP_AUTO:
         del subnet[SUBNET_GATEWAY_IP]
+    ctx.logger.debug("subnet after={}".format(subnet))
 
     s = neutron_client.create_subnet({'subnet': subnet})['subnet']
     ctx.instance.runtime_properties[OPENSTACK_ID_PROPERTY] = s['id']
