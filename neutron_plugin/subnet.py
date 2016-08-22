@@ -79,6 +79,7 @@ def create(neutron_client, args, **kwargs):
     # Sugaring: if gateway_ip is "auto", then it's removed from the request.
     ctx.logger.debug("subnet before={}".format(subnet))
     if getattr(subnet, SUBNET_GATEWAY_IP, '') == SUBNET_GATEWAY_IP_AUTO:
+        ctx.logger.debug('Deleting gateway_ip')
         del subnet[SUBNET_GATEWAY_IP]
     ctx.logger.debug("subnet after={}".format(subnet))
 
